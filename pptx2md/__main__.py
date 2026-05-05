@@ -16,6 +16,8 @@ import argparse
 import logging
 from pathlib import Path
 
+from tqdm import tqdm
+
 from pptx2md.entry import convert
 from pptx2md.log import setup_logging
 from pptx2md.types import ConversionConfig
@@ -24,12 +26,17 @@ setup_logging(compat_tqdm=True)
 logger = logging.getLogger(__name__)
 
 
-def parse_args() -> ConversionConfig:
+def parse_args():
     arg_parser = argparse.ArgumentParser(description='Convert pptx to markdown')
-    arg_parser.add_argument('pptx_path', type=Path, help='path to the pptx file to be converted')
+    arg_parser.add_argument('pptx_path',
+                            type=Path,
+                            nargs='?',
+                            default=Path('.'),
+                            help='path to the pptx file to be converted')
     arg_parser.add_argument('-t', '--title', type=Path, help='path to the custom title list file')
     arg_parser.add_argument('-o', '--output', type=Path, help='path of the output file')
     arg_parser.add_argument('-i', '--image-dir', type=Path, help='where to put images extracted')
+    arg_parser.add_argument('--all', action="store_true", help='convert all pptx files in the target folder')
     arg_parser.add_argument('--image-width', type=int, help='maximum image with in px')
     arg_parser.add_argument('--disable-image', action="store_true", help='disable image extraction')
     arg_parser.add_argument('--disable-wmf',
@@ -57,15 +64,28 @@ def parse_args() -> ConversionConfig:
 
     args = arg_parser.parse_args()
 
-    # Determine output path if not specified
-    if args.output is None:
-        extension = '.tid' if args.wiki else '.qmd' if args.qmd else '.md'
-        args.output = Path(f'out{extension}')
+    return args
 
+
+def get_output_path(args, pptx_path: Path) -> Path:
+    extension = '.tid' if args.wiki else '.qmd' if args.qmd else '.md'
+    if args.output is None:
+        return pptx_path.with_suffix(extension)
+    if args.all:
+        return args.output / pptx_path.with_suffix(extension).name
+    return args.output
+
+
+def get_image_dir(args, output_path: Path) -> Path:
+    return args.image_dir or output_path.parent / 'img'
+
+
+def make_config(args, pptx_path: Path) -> ConversionConfig:
+    output_path = get_output_path(args, pptx_path)
     return ConversionConfig(
-        pptx_path=args.pptx_path,
-        output_path=args.output,
-        image_dir=args.image_dir or args.output.parent / 'img',
+        pptx_path=pptx_path,
+        output_path=output_path,
+        image_dir=get_image_dir(args, output_path),
         title_path=args.title,
         image_width=args.image_width,
         disable_image=args.disable_image,
@@ -85,8 +105,20 @@ def parse_args() -> ConversionConfig:
 
 
 def main():
-    config = parse_args()
-    convert(config)
+    args = parse_args()
+
+    if args.all:
+        target_dir = args.pptx_path
+        if target_dir.is_file():
+            target_dir = target_dir.parent
+        pptx_files = sorted(target_dir.glob('*.pptx'))
+        if not pptx_files:
+            raise FileNotFoundError(f'no pptx files found in {target_dir}')
+        for pptx_path in tqdm(pptx_files, desc='Converting files'):
+            convert(make_config(args, pptx_path))
+        return
+
+    convert(make_config(args, args.pptx_path))
 
 
 if __name__ == '__main__':

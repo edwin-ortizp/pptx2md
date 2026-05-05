@@ -29,23 +29,40 @@ _Please star this repo if you like it!_
 You need to have _[Python](https://www.python.org/)_ with version later than __3.10__ and _pip_ installed on your system, then run in the terminal:
 
 ```sh
-pip install pptx2md
+pipx uninstall pptx2md
+pipx install --editable .
 ```
 
 ### Usage
 
 Once you have installed it, use the command `pptx2md [pptx filename]` to convert _pptx file_ into markdown.
 
-The default output filename is `out.md`, and any pictures extracted (and inserted into .md) will be placed in `/img/` folder. 
+The default output filename uses the same name as the source file with the `.md` extension, and any pictures extracted (and inserted into .md) will be placed in `/img/` folder.
+
+```sh
+pptx2md Modulo\ 0\ -\ Conceptos\ básicos.pptx --disable-color --enable-slides --disable-image --disable-escaping
+```
+
+Convert all PPTX files in the current folder:
+
+```sh
+pptx2md --all --disable-color --enable-slides --disable-image --disable-escaping
+```
+
+Output:
+
+```text
+Modulo 0 - Conceptos básicos.md
+```
 
 __Note:__ older .ppt files are not supported, convert them to the new .pptx version first.
 
 __Upgrade & Remove:__
 
 ```sh
-pip install --upgrade pptx2md
+pipx reinstall pptx2md
 
-pip uninstall pptx2md
+pipx uninstall pptx2md
 ```
 
 ## Custom Titles
@@ -78,6 +95,7 @@ Use it with `pptx2md [filename] -t titles.txt`.
 * `-t [filename]` provide the title file
 * `-o [filename]` path of the output file
 * `-i [path]` directory of the extracted pictures
+* `--all` convert all pptx files in the target folder
 * `--image-width [width]` the maximum width of the pictures, in px. **If set, images are put as html img tag.**
 * `--disable-image` disable the image extraction
 * `--disable-escaping` do not attempt to escape special characters

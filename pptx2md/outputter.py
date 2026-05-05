@@ -24,6 +24,7 @@ from pptx2md.utils import rgb_to_hex
 
 
 class Formatter:
+    use_plain_slide_labels = False
 
     def __init__(self, config: ConversionConfig):
         os.makedirs(config.output_path.parent, exist_ok=True)
@@ -36,6 +37,9 @@ class Formatter:
         last_element = None
         last_title = None
         for slide_idx, slide in enumerate(presentation_data.slides):
+            if self.use_plain_slide_labels:
+                self.put_para(f'Slide {slide_idx + 1}')
+
             all_elements = []
             if slide.type == SlideType.General:
                 all_elements = slide.elements
@@ -72,9 +76,7 @@ class Formatter:
                 last_element = element
 
             if not self.config.disable_notes and slide.notes:
-                self.put_para('---')
-                for note in slide.notes:
-                    self.put_para(note)
+                self.put_notes(slide.notes)
 
             if slide_idx < len(presentation_data.slides) - 1 and self.config.enable_slides:
                 self.put_para("\n---\n")
@@ -83,6 +85,14 @@ class Formatter:
 
     def put_header(self):
         pass
+
+    def put_notes_header(self):
+        self.put_para('---')
+
+    def put_notes(self, notes):
+        self.put_notes_header()
+        for note in notes:
+            self.put_para(note)
 
     def put_title(self, text, level):
         pass
@@ -153,6 +163,8 @@ class Formatter:
 
 
 class MarkdownFormatter(Formatter):
+    use_plain_slide_labels = True
+
     # write outputs to markdown
     def __init__(self, config: ConversionConfig):
         super().__init__(config)
@@ -180,11 +192,18 @@ class MarkdownFormatter(Formatter):
         self.ofile.write(gen_table_row([':-:' for _ in table[0]]) + '\n')
         self.ofile.write('\n'.join([gen_table_row(row) for row in table[1:]]) + '\n\n')
 
+    def put_notes_header(self):
+        self.put_para('Notes')
+
+    def put_notes(self, notes):
+        for note in notes:
+            self.put_para(f'Notes: {note}')
+
     def get_accent(self, text):
-        return ' _' + text + '_ '
+        return text
 
     def get_strong(self, text):
-        return ' __' + text + '__ '
+        return text
 
     def get_colored(self, text, rgb):
         return ' <span style="color:%s">%s</span> ' % (rgb_to_hex(rgb), text)
