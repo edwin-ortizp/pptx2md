@@ -26,11 +26,44 @@ _Please star this repo if you like it!_
 
 ### Installation
 
-You need to have _[Python](https://www.python.org/)_ with version later than __3.10__ and _pip_ installed on your system, then run in the terminal:
+You need to have _[Python](https://www.python.org/)_ version __3.10__ or later and _pip_ installed on your system.
+
+#### Windows
+
+Install `pipx` if it is not available yet:
+
+```powershell
+py -m pip install --user pipx
+py -m pipx ensurepath
+```
+
+Close and reopen the terminal after `ensurepath`, then install this project from the repository folder:
+
+```powershell
+py -m pipx uninstall pptx2md
+py -m pipx install --editable .
+```
+
+If you do not want to use `pipx`, you can install the editable package with `pip`:
+
+```powershell
+py -m pip install --editable .
+```
+
+#### macOS / Linux
+
+Install `pipx` if it is not available yet:
 
 ```sh
-pipx uninstall pptx2md
-pipx install --editable .
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
+```
+
+Close and reopen the terminal after `ensurepath`, then install this project from the repository folder:
+
+```sh
+python3 -m pipx uninstall pptx2md
+python3 -m pipx install --editable .
 ```
 
 ### Usage
@@ -59,10 +92,20 @@ __Note:__ older .ppt files are not supported, convert them to the new .pptx vers
 
 __Upgrade & Remove:__
 
-```sh
-pipx reinstall pptx2md
+Windows:
 
-pipx uninstall pptx2md
+```powershell
+py -m pipx reinstall pptx2md
+
+py -m pipx uninstall pptx2md
+```
+
+macOS / Linux:
+
+```sh
+python3 -m pipx reinstall pptx2md
+
+python3 -m pipx uninstall pptx2md
 ```
 
 ## Custom Titles
