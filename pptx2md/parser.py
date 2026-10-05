@@ -158,7 +158,7 @@ def process_picture(config: ConversionConfig, shape, slide_idx) -> Union[ImageEl
 
     output_path = config.image_dir / f'{pic_name}.{pic_ext}'
     common_path = os.path.commonpath([config.output_path, config.image_dir])
-    img_outputter_path = os.path.relpath(output_path, common_path)
+    img_outputter_path = os.path.relpath(output_path, common_path).replace(os.sep, '/')
     with open(output_path, 'wb') as f:
         f.write(shape.image.blob)
         picture_count += 1

@@ -33,11 +33,12 @@ class Formatter:
 
     def output(self, presentation_data: ParsedPresentation):
         self.put_header()
+        is_pdf = self.config.pptx_path.suffix.lower() == '.pdf'
 
         last_element = None
         last_title = None
         for slide_idx, slide in enumerate(presentation_data.slides):
-            if self.use_plain_slide_labels:
+            if self.use_plain_slide_labels and not is_pdf:
                 self.put_para(f'Slide {slide_idx + 1}')
 
             all_elements = []
@@ -54,7 +55,7 @@ class Formatter:
                     case ElementType.Title:
                         element.content = element.content.strip()
                         if element.content:
-                            if last_title and last_title.level == element.level and fuzz.ratio(
+                            if not is_pdf and last_title and last_title.level == element.level and fuzz.ratio(
                                     last_title.content, element.content, score_cutoff=92):
                                 # skip if the title is the same as the last one
                                 # Allow for repeated slide titles - One or more - Add (cont.) to the title
@@ -66,7 +67,11 @@ class Formatter:
                     case ElementType.ListItem:
                         if not (last_element and last_element.type == ElementType.ListItem):
                             self.put_list_header()
-                        self.put_list(self.get_formatted_runs(element.content), element.level)
+                        text = self.get_formatted_runs(element.content)
+                        if element.marker:
+                            self.put_ordered_list(text, element.level, element.marker)
+                        else:
+                            self.put_list(text, element.level)
                     case ElementType.Paragraph:
                         self.put_para(self.get_formatted_runs(element.content))
                     case ElementType.Image:
@@ -99,6 +104,9 @@ class Formatter:
 
     def put_list(self, text, level):
         pass
+
+    def put_ordered_list(self, text, level, marker):
+        self.put_list(f'{marker} {text}', level)
 
     def put_list_header(self):
         self.put_para('')
@@ -177,6 +185,10 @@ class MarkdownFormatter(Formatter):
     def put_list(self, text, level):
         self.ofile.write('  ' * level + '* ' + text.strip() + '\n')
 
+    def put_ordered_list(self, text, level, marker):
+        # Markdown ordered lists use periods, including PDF markers written as '1)'.
+        self.ofile.write('  ' * level + marker.rstrip('.)') + '. ' + text.strip() + '\n')
+
     def put_para(self, text):
         self.ofile.write(text + '\n\n')
 
@@ -215,6 +227,9 @@ class MarkdownFormatter(Formatter):
         return '\\' + match.group(0)
 
     def get_escaped(self, text):
+        if self.config.pptx_path.suffix.lower() == '.pdf':
+            # Keep ordinary punctuation readable in continuous PDF prose.
+            return re.sub(r'([\\`*_{}\[\]<>#!])', self.esc_repl, text)
         text = re.sub(self.esc_re1, self.esc_repl, text)
         text = re.sub(self.esc_re2, self.esc_repl, text)
         return text

@@ -26,14 +26,19 @@ def convert(config: ConversionConfig):
     if config.title_path:
         config.custom_titles = prepare_titles(config.title_path)
 
-    prs = load_pptx(config.pptx_path)
-
     logger.info("conversion started")
-
-    ast = parse(config, prs)
+    suffix = config.pptx_path.suffix.lower()
+    if suffix == '.pdf':
+        from pptx2md.pdf_parser import parse_pdf
+        ast = parse_pdf(config)
+    elif suffix == '.pptx':
+        ast = parse(config, load_pptx(config.pptx_path))
+    else:
+        raise ValueError(f'unsupported input format: {suffix or "(none)"}; expected .pptx or .pdf')
 
     if str(config.output_path).endswith('.json'):
-        with open(config.output_path, 'w') as f:
+        config.output_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(config.output_path, 'w', encoding='utf-8') as f:
             f.write(ast.model_dump_json(indent=2))
         logger.info(f'presentation data saved to {config.output_path}')
         return

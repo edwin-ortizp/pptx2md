@@ -2,7 +2,7 @@
 
 [![Downloads](https://pepy.tech/badge/pptx2md)](https://pepy.tech/project/pptx2md)
 
-A tool to convert Powerpoint pptx file into markdown.
+A tool to convert PowerPoint PPTX files and text-based PDFs into Markdown.
 
 **Preserved formats:**
 
@@ -68,7 +68,7 @@ python3 -m pipx install --editable .
 
 ### Usage
 
-Once you have installed it, use the command `pptx2md [pptx filename]` to convert _pptx file_ into markdown.
+Once you have installed it, use `pptx2md [filename]` to convert a PPTX or text-based PDF into Markdown.
 
 The default output filename uses the same name as the source file with the `.md` extension, and any pictures extracted (and inserted into .md) will be placed in `/img/` folder.
 
@@ -76,7 +76,7 @@ The default output filename uses the same name as the source file with the `.md`
 pptx2md Modulo\ 0\ -\ Conceptos\ básicos.pptx --disable-color --enable-slides --disable-image --disable-escaping
 ```
 
-Convert all PPTX files in the current folder:
+Convert all PPTX and PDF files in the current folder:
 
 ```sh
 pptx2md --all --disable-color --enable-slides --disable-image --disable-escaping
@@ -89,6 +89,85 @@ Modulo 0 - Conceptos básicos.md
 ```
 
 __Note:__ older .ppt files are not supported, convert them to the new .pptx version first.
+
+### Desktop interface
+
+Install the optional desktop interface in your environment:
+
+```powershell
+python -m pip install --editable ".[gui]"
+```
+
+From this project, open the Spanish desktop window with:
+
+```powershell
+.\.venv\Scripts\python.exe -m pptx2md.gui
+```
+
+You can also use `pptx2md-gui` after activating the environment. On Windows the
+interface uses Microsoft Edge WebView2 Runtime. Conversion runs locally; the
+existing command line remains available without the `gui` extra.
+
+Select several PPTX/PDF files, choose the output folder, and choose one Markdown
+per file or a combined document. Images and presenter notes are optional for
+PPTX and disabled initially. Existing results are never overwritten: duplicate
+names get extensions and/or numeric suffixes. Images live under `img/` in separate
+document folders, with relative links from the Markdown.
+
+The interface shows the current document, processed-file count, and individual
+successes/errors. A failed file does not stop the remaining files. Combined
+documents contain successful conversions only, in selection order, with source
+headings; their contents' headings shift down one level (up to six). If every
+conversion fails, no empty combined Markdown is created. Wait for conversion to
+finish before closing the window; this version has no cancellation.
+
+Windows integration smoke (real hidden WebView2, frontend and conversion worker;
+dialog selections and opening external applications are simulated):
+
+```powershell
+python tests/gui_smoke.py
+```
+
+### Text PDF support
+
+```powershell
+pptx2md "2020-Scrum-Guide-Spanish-Latin-South-American.pdf" -o "output/2020-Scrum-Guide-Spanish-Latin-South-American.md"
+```
+
+PDF conversion preserves the extracted text, accents, numbered lists, bullet lists,
+and headings inferred from font sizes. Wrapped lines and unfinished paragraphs
+across pages are joined. Dot-leader tables of contents become lists without page
+numbers. Only isolated numeric footers in the bottom 10% of the page are removed.
+The output is continuous, without `Slide` labels. `-t` overrides matching heading
+levels using the same custom-title file as PPTX; `--page` selects a physical PDF
+page, starting at 1, including the cover.
+
+This first PDF reader does not perform OCR, extract images, reconstruct tables,
+or reproduce complex layouts or columns. Password-protected or unreadable files,
+and selected pages without extractable text, fail before writing the output.
+Font-based heading and paragraph detection is heuristic; review the resulting
+Markdown when the source has unusual typography. Source text is never summarized
+or translated. Slide-, image-, notes-, and PowerPoint-layout-specific options do
+not affect PDF extraction; all existing output formatters remain available.
+
+`--all` processes both extensions, case-insensitively. When source stems collide,
+outputs include the input extension, for example `guide.pdf.md` and
+`guide.pptx.md`. Remaining filename collisions are rejected before conversion.
+`-o` is a directory for batch conversion and a filename for single-file conversion.
+
+Development checks (install the development dependencies first):
+
+```powershell
+python -m unittest discover -s tests -v
+```
+
+To also check every character of the supplied 16-page Scrum Guide (apart from
+whitespace, list bullets, numeric footers, and TOC dot leaders/page numbers):
+
+```powershell
+$env:SCRUM_GUIDE_PDF = "C:\path\2020-Scrum-Guide-Spanish-Latin-South-American.pdf"
+python -m unittest discover -s tests -v
+```
 
 __Upgrade & Remove:__
 
@@ -138,7 +217,7 @@ Use it with `pptx2md [filename] -t titles.txt`.
 * `-t [filename]` provide the title file
 * `-o [filename]` path of the output file
 * `-i [path]` directory of the extracted pictures
-* `--all` convert all pptx files in the target folder
+* `--all` convert all PPTX and PDF files in the target folder
 * `--image-width [width]` the maximum width of the pictures, in px. **If set, images are put as html img tag.**
 * `--disable-image` disable the image extraction
 * `--disable-escaping` do not attempt to escape special characters

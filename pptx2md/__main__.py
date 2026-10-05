@@ -27,16 +27,16 @@ logger = logging.getLogger(__name__)
 
 
 def parse_args():
-    arg_parser = argparse.ArgumentParser(description='Convert pptx to markdown')
+    arg_parser = argparse.ArgumentParser(description='Convert PPTX or text PDF to markdown')
     arg_parser.add_argument('pptx_path',
                             type=Path,
                             nargs='?',
                             default=Path('.'),
-                            help='path to the pptx file to be converted')
+                            help='path to the PPTX or PDF file to be converted')
     arg_parser.add_argument('-t', '--title', type=Path, help='path to the custom title list file')
     arg_parser.add_argument('-o', '--output', type=Path, help='path of the output file')
     arg_parser.add_argument('-i', '--image-dir', type=Path, help='where to put images extracted')
-    arg_parser.add_argument('--all', action="store_true", help='convert all pptx files in the target folder')
+    arg_parser.add_argument('--all', action="store_true", help='convert all PPTX and PDF files in the target folder')
     arg_parser.add_argument('--image-width', type=int, help='maximum image with in px')
     arg_parser.add_argument('--disable-image', action="store_true", help='disable image extraction')
     arg_parser.add_argument('--disable-wmf',
@@ -111,11 +111,25 @@ def main():
         target_dir = args.pptx_path
         if target_dir.is_file():
             target_dir = target_dir.parent
-        pptx_files = sorted(target_dir.glob('*.pptx'))
-        if not pptx_files:
-            raise FileNotFoundError(f'no pptx files found in {target_dir}')
-        for pptx_path in tqdm(pptx_files, desc='Converting files'):
-            convert(make_config(args, pptx_path))
+        source_files = sorted(p for p in target_dir.iterdir() if p.is_file() and p.suffix.lower() in ('.pptx', '.pdf'))
+        if not source_files:
+            raise FileNotFoundError(f'no PPTX or PDF files found in {target_dir}')
+        configs = [make_config(args, source) for source in source_files]
+        # Preflight every destination before creating any output. Include the source
+        # extension only for colliding stems, then reject any remaining collisions.
+        counts = {}
+        for config in configs:
+            key = str(config.output_path.resolve()).casefold()
+            counts[key] = counts.get(key, 0) + 1
+        for config in configs:
+            if counts[str(config.output_path.resolve()).casefold()] > 1:
+                config.output_path = config.output_path.with_name(
+                    config.pptx_path.name + config.output_path.suffix)
+        destinations = [str(config.output_path.resolve()).casefold() for config in configs]
+        if len(set(destinations)) != len(destinations):
+            raise ValueError('batch output filenames still collide; rename the source files')
+        for config in tqdm(configs, desc='Converting files'):
+            convert(config)
         return
 
     convert(make_config(args, args.pptx_path))

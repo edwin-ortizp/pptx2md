@@ -22,10 +22,10 @@ from pydantic import BaseModel
 
 
 class ConversionConfig(BaseModel):
-    """Configuration for PowerPoint to Markdown conversion."""
+    """Configuration for PowerPoint or text PDF conversion."""
 
     pptx_path: Path
-    """Path to the pptx file to be converted"""
+    """Source PPTX or PDF path (legacy field name retained for compatibility)."""
 
     output_path: Path
     """Path of the output file"""
@@ -125,6 +125,8 @@ class ListItemElement(BaseElement):
     type: ElementType = ElementType.ListItem
     content: List[TextRun]
     level: int = 1
+    marker: Optional[str] = None
+    """Original ordered-list marker, when present (for example '3.')."""
 
 
 class ParagraphElement(BaseElement):
